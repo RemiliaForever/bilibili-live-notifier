@@ -48,24 +48,37 @@ pub fn main_loop(config: Config) {
         };
         // 尝试进入房间
         println!("正在进入房间...");
-        let _ = stream.write_all(
-            Package::join_channel(config.userid, config.roomid)
-                .as_bytes()
-                .as_slice(),
-        );
+        if let Err(e) = send(
+            &mut stream,
+            Package::join_channel(config.userid, config.roomid),
+        ) {
+            // 进入失败则重新连接服务器
+            println!("进入房间失败:{}", e);
+            continue;
+        }
         // 后台开启心跳线程，每30秒发送一次
         let mut heart_beat_stream = stream.try_clone().unwrap();
         thread::spawn(move || loop {
-            heart_beat_stream
-                .write_all(Package::heart_beat().as_bytes().as_slice())
-                .unwrap();
-            thread::sleep(Duration::from_secs(30));
+            // 发送成功等待30秒，失败则10秒后重试
+            if let Err(e) = send(&mut heart_beat_stream, Package::heart_beat()) {
+                println!("心跳包发送失败:{}", e);
+                thread::sleep(Duration::from_secs(10));
+            } else {
+                thread::sleep(Duration::from_secs(30));
+            }
         });
         // 开始主循环
         if let Err(e) = recieve(stream) {
             println!("网络连接出错:{}", e);
         }
     }
+}
+
+fn send(stream: &mut TcpStream, package: Package) -> Result<(), &'static str> {
+    let bytes = package.as_bytes()?;
+    stream
+        .write_all(bytes.as_slice())
+        .or(Err("数据包发送失败！"))
 }
 
 /// 这一层抛出网络连接和原始数据包解析的错误，这个错误需要重新连接服务器
@@ -118,7 +131,9 @@ fn recieve(mut socket: TcpStream) -> Result<(), &'static str> {
     }
 }
 
-/// 这一层抛出数据包主体解析的错误，这个错误无需重连服务器
+/// 这一层抛出数据包主体结构的错误，
+/// 这个错误无需重连服务器。
+/// 数据包内容解析错误不会抛出。
 fn parse_danmu(data: &str) -> Result<(), &'static str> {
     let json: Value = serde_json::from_str::<Value>(data).or(Err("body解析出错"))?;
     let cmd = json.get("cmd").ok_or("未知的命令")?;

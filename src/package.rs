@@ -62,16 +62,24 @@ impl Package {
     }
 
     /// 包装为二进制
-    pub fn as_bytes(self) -> Vec<u8> {
+    pub fn as_bytes(self) -> Result<Vec<u8>, &'static str> {
         let mut buffer: Vec<u8> = Vec::with_capacity(self.length);
-        buffer.write_u32::<BE>(self.length as u32).unwrap();
-        buffer.write_u32::<BE>(self.version).unwrap();
-        buffer.write_u32::<BE>(self.action).unwrap();
-        buffer.write_u32::<BE>(self.param).unwrap();
+        buffer
+            .write_u32::<BE>(self.length as u32)
+            .or(Err("length包装错误"))?;
+        buffer
+            .write_u32::<BE>(self.version)
+            .or(Err("version包装错误"))?;
+        buffer
+            .write_u32::<BE>(self.action)
+            .or(Err("action包装错误"))?;
+        buffer
+            .write_u32::<BE>(self.param)
+            .or(Err("param包装错误"))?;
         match self.body {
             Some(body) => buffer.extend_from_slice(body.as_bytes()),
             None => {}
         };
-        buffer
+        Ok(buffer)
     }
 }
