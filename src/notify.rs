@@ -1,5 +1,6 @@
 use notify_rust::Notification;
 use std::time::Duration;
+use chrono::Local;
 use std::thread::sleep;
 
 use std::collections::LinkedList;
@@ -49,4 +50,22 @@ fn notify() {
             .show()
             .unwrap();
     }
+}
+
+pub fn danmu(name: &str, content: &str) {
+    println!("{} -- {} : {}", Local::now(), name, content);
+}
+
+pub fn gift(name: &str, gift: &str, num: u64) {
+    println!(
+        "{} -- 感谢 {} 送出的 {} 个 {}！",
+        Local::now(),
+        name,
+        num,
+        gift
+    );
+}
+
+pub fn welcome(name: &str) {
+    println!("{} -- 欢迎 {} 来到直播间！", Local::now(), name);
 }

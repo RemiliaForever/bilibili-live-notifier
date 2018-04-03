@@ -24,6 +24,7 @@ name = "bilibili-live-notifier"
 version = "0.1.0"
 dependencies = [
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chrono 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "notify-rust 3.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

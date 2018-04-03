@@ -1,4 +1,5 @@
 extern crate byteorder;
+extern crate chrono;
 extern crate notify_rust;
 extern crate serde_json;
 
