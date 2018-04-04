@@ -1,12 +1,12 @@
-use std::io::prelude::*;
-use std::io::Cursor;
-use std::net::{TcpStream, ToSocketAddrs};
-use std::time::Duration;
-use std::result::Result::Err;
 use std::{str, thread, u32, u64};
+use std::io::{Cursor, Read, Write};
+use std::net::{TcpStream, ToSocketAddrs};
+use std::result::Result::Err;
+use std::time::Duration;
+use std::sync::mpsc::{self, TryRecvError};
+
 use byteorder::{ReadBytesExt, BE};
-use serde_json;
-use serde_json::Value;
+use serde_json::{self, Value};
 
 use notify::{danmu, gift, welcome};
 use config::Config;
@@ -58,7 +58,16 @@ pub fn main_loop(config: Config) {
         }
         // 后台开启心跳线程，每30秒发送一次
         let mut heart_beat_stream = stream.try_clone().unwrap();
+        let (tx, rx) = mpsc::channel::<()>();
         thread::spawn(move || loop {
+            // 检测主线程状态，收到终止信号结束循环
+            match rx.try_recv() {
+                Ok(_) | Err(TryRecvError::Disconnected) => {
+                    println!("心跳线程终止！");
+                    break;
+                }
+                Err(TryRecvError::Empty) => {}
+            };
             // 发送成功等待30秒，失败则10秒后重试
             if let Err(e) = send(&mut heart_beat_stream, Package::heart_beat()) {
                 println!("心跳包发送失败:{}", e);
@@ -70,6 +79,10 @@ pub fn main_loop(config: Config) {
         // 开始主循环
         if let Err(e) = recieve(stream) {
             println!("网络连接出错:{}", e);
+        }
+        // 主循环结束，通知后台线程
+        if let Err(e) = tx.send(()) {
+            println!("结束子线程出错:{}", e);
         }
     }
 }
@@ -142,6 +155,13 @@ fn parse_danmu(data: &str) -> Result<(), &'static str> {
             let value = json.get("data").ok_or("data解析出错")?;
             let name = value
                 .get("uname")
+                .map_or("未知", |uname| uname.as_str().unwrap_or("未知"));
+            Ok(welcome(name))
+        }
+        Some("WELCOME_GUARD") => {
+            let value = json.get("data").ok_or("data解析出错")?;
+            let name = value
+                .get("username")
                 .map_or("未知", |uname| uname.as_str().unwrap_or("未知"));
             Ok(welcome(name))
         }

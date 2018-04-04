@@ -13,7 +13,7 @@ fn main() {
         host: "livecmt-2.bilibili.com".to_owned(),
         port: 2243,
         userid: 8393961,
-        roomid: 90713,
+        roomid: 73700,
     };
     daemon::main_loop(config);
 }
