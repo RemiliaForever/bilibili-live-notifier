@@ -38,7 +38,7 @@ pub fn main_loop(config: Config) {
             }
         };
         // 检查连接，获取失败则等待3秒后重试
-        let mut stream = match socket {
+        let mut stream: TcpStream = match socket {
             None => {
                 println!("连接服务器失败！");
                 thread::sleep(Duration::from_secs(3));
@@ -57,8 +57,15 @@ pub fn main_loop(config: Config) {
             continue;
         }
         // 后台开启心跳线程，每30秒发送一次
-        let mut heart_beat_stream = stream.try_clone().unwrap();
         let (tx, rx) = mpsc::channel::<()>();
+        let mut heart_beat_stream = match stream.try_clone() {
+            Ok(stream) => stream,
+            Err(e) => {
+                println!("启动子线程出错:{}", e);
+                thread::sleep(Duration::from_secs(3));
+                continue;
+            }
+        };
         thread::spawn(move || loop {
             // 检测主线程状态，收到终止信号结束循环
             match rx.try_recv() {

@@ -1,8 +1,8 @@
 use std::collections::LinkedList;
 
+use chrono::Local;
 use notify_rust::Notification;
 use notify_rust::NotificationHint;
-use chrono::Local;
 
 enum Color {
     Red,
