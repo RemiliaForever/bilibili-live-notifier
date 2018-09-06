@@ -1,0 +1,58 @@
+pipeline:
+    setup:
+        image: docker
+        commands:
+            - docker build --rm -t remilia/bilibili-live-notifier:latest .
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+
+    restore_cache:
+        image: drillster/drone-volume-cache
+        restore: true
+        mount:
+            - ./.cargo
+            - ./target
+        volumes:
+            - /home/drone/cache:/cache
+
+    build:
+        image: remilia/bilibili-live-notifier:latest
+        commands:
+            - export CARGO_HOME=./.cargo
+            - cargo build
+
+    test:
+        image: remilia/bilibili-live-notifier:latest
+        commands:
+            - export CARGO_HOME=./.cargo
+            - cargo test
+
+    rebuild_cache:
+        image: drillster/drone-volume-cache
+        rebuild: true
+        mount:
+            - ./.cargo
+            - ./target
+        volumes:
+            - /home/drone/cache:/cache
+
+
+    notify:
+        image: appleboy/drone-telegram
+        when:
+            status: [ success, failure ]
+        format: markdown
+        to: -155562062
+        secrets:
+            - source: telegram_token
+              target: telegram_token
+        message: |
+            {{#success build.status}}
+                *Success* {{build.link}}
+            {{else}}
+                *Failed* {{build.link}}
+            {{/success}}
+            *Branch*: {{commit.Branch}}
+            *Author*: {{commit.Author}}
+            *Message*: {{commit.Message}}
+            *Elapsed*: {{buildtime build.started}}

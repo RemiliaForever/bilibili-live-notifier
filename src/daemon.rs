@@ -1,15 +1,15 @@
-use std::{str, thread, u32, u64};
 use std::io::{Cursor, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::result::Result::Err;
-use std::time::Duration;
 use std::sync::mpsc::{self, TryRecvError};
+use std::time::Duration;
+use std::{str, thread, u32, u64};
 
 use byteorder::{ReadBytesExt, BE};
 use serde_json::{self, Value};
 
-use notify::{danmu, gift, welcome};
 use config::Config;
+use notify::{danmu, gift, welcome};
 use package::Package;
 
 /// 后台线程
@@ -47,7 +47,7 @@ pub fn main_loop(config: Config) {
             Some(socket) => socket,
         };
         // 尝试进入房间
-        println!("正在进入房间...");
+        println!("正在进入房间 {} ...", config.roomid);
         if let Err(e) = send(
             &mut stream,
             Package::join_channel(config.userid, config.roomid),
