@@ -1,5 +1,8 @@
 BiliBili-live-notifier
 ====
+[![build status](https://ci.koumakan.cc/api/badges/RemiliaForever/bilibili-live-notifier/status.svg)](https://ci.koumakan.cc/RemiliaForever/bilibili-live-notifier)
+[![codecov](https://codecov.io/gh/RemiliaForever/bilibili-live-notifier/branch/master/graph/badge.svg)](https://codecov.io/gh/RemiliaForever/bilibili-live-notifier)
+
 B站直播弹幕姬 rust版本
 
 ## 说明

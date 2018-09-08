@@ -11,7 +11,6 @@ pipeline:
         restore: true
         mount:
             - ./.cargo
-            - ./target
         volumes:
             - /home/drone/cache:/cache
 
@@ -23,16 +22,17 @@ pipeline:
 
     test:
         image: remilia/bilibili-live-notifier:latest
+        secrets: [ codecov_token ]
         commands:
             - export CARGO_HOME=./.cargo
-            - cargo test
+            - cargo tarpaulin --out Xml -v
+            - bash -c "bash <(curl -s https://codecov.io/bash)"
 
     rebuild_cache:
         image: drillster/drone-volume-cache
         rebuild: true
         mount:
             - ./.cargo
-            - ./target
         volumes:
             - /home/drone/cache:/cache
 
@@ -43,12 +43,10 @@ pipeline:
             status: [ success, failure ]
         format: markdown
         to: -155562062
-        secrets:
-            - source: telegram_token
-              target: telegram_token
+        secrets: [ telegram_token ]
         message: |
             {{#success build.status}}
-                *Success* {{build.link}}
+                *Success* [{{repo.owner}}/{{repo.name}} #{{build.number}}]({{build.link}})
             {{else}}
                 *Failed* {{build.link}}
             {{/success}}
