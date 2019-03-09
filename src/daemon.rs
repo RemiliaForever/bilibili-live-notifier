@@ -5,12 +5,12 @@ use std::sync::mpsc::{self, TryRecvError};
 use std::time::Duration;
 use std::{str, thread, u32, u64};
 
-use byteorder::{ReadBytesExt, BE};
-use serde_json::{self, Value};
+use byteorder::{ReadBytesExt, WriteBytesExt, BE};
+use serde_json::Value;
 
-use config::Config;
-use notify::{danmu, gift, welcome};
-use package::Package;
+use crate::config::Config;
+use crate::notify::{danmu, gift, welcome};
+use crate::package::Package;
 
 /// 后台线程
 pub fn main_loop(config: Config) {
@@ -76,7 +76,7 @@ pub fn main_loop(config: Config) {
                 Err(TryRecvError::Empty) => {}
             };
             // 发送成功等待30秒，失败则10秒后重试
-            if let Err(e) = send(&mut heart_beat_stream, Package::heart_beat()) {
+            if let Err(e) = send(&mut heart_beat_stream, Package::HEART_BEAT) {
                 println!("心跳包发送失败:{}", e);
                 thread::sleep(Duration::from_secs(10));
             } else {
@@ -94,15 +94,32 @@ pub fn main_loop(config: Config) {
     }
 }
 
-fn send(stream: &mut TcpStream, package: Package) -> Result<(), &'static str> {
-    let bytes = package.as_bytes()?;
+/// 包装为二进制发送
+fn send(mut stream: impl Write, package: Package) -> Result<(), &'static str> {
+    let mut buffer: Vec<u8> = Vec::with_capacity(package.length);
+    buffer
+        .write_u32::<BE>(package.length as u32)
+        .or(Err("length包装错误"))?;
+    buffer
+        .write_u32::<BE>(package.version)
+        .or(Err("version包装错误"))?;
+    buffer
+        .write_u32::<BE>(package.action)
+        .or(Err("action包装错误"))?;
+    buffer
+        .write_u32::<BE>(package.param)
+        .or(Err("param包装错误"))?;
+    match package.body {
+        Some(body) => buffer.extend_from_slice(body.as_bytes()),
+        None => {}
+    };
     stream
-        .write_all(bytes.as_slice())
+        .write_all(buffer.as_slice())
         .or(Err("数据包发送失败！"))
 }
 
 /// 这一层抛出网络连接和原始数据包解析的错误，这个错误需要重新连接服务器
-fn recieve(mut socket: TcpStream) -> Result<(), &'static str> {
+fn recieve(mut socket: impl Read) -> Result<(), &'static str> {
     loop {
         // 解析数据包头
         let mut header = [0u8; 16];
@@ -143,10 +160,10 @@ fn recieve(mut socket: TcpStream) -> Result<(), &'static str> {
                     .to_owned();
                 if let Err(e) = parse_danmu(&data) {
                     println!("解析弹幕数据出错:{}", e);
-                    println!("{:?}", package);
+                    println!("{:#?}", package);
                 }
             }
-            _ => println!("未知的数据包:{:?}", package),
+            _ => println!("未知的数据包:{:#?}", package),
         }
     }
 }

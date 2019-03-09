@@ -1,56 +1,58 @@
-pipeline:
-    setup:
-        image: docker
-        commands:
-            - docker build --rm -t remilia/bilibili-live-notifier:latest .
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
+kind: pipeline
+name: default
 
-    restore_cache:
-        image: drillster/drone-volume-cache
-        restore: true
-        mount:
-            - ./.cargo
-        volumes:
-            - /home/drone/cache:/cache
+steps:
+- name: setup
+  image: plugins/docker
+  pull: always
+  settings:
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    repo: remiliaforever/bilibili-live-notifier
+    tags: latest
 
-    build:
-        image: remilia/bilibili-live-notifier:latest
-        commands:
-            - export CARGO_HOME=./.cargo
-            - cargo build
+- name: build
+  image: remiliaforever/bilibili-live-notifier:latest
+  pull: always
+  commands:
+  - export CARGO_HOME=./.cargo
+  - cargo build
 
-    test:
-        image: remilia/bilibili-live-notifier:latest
-        secrets: [ codecov_token ]
-        commands:
-            - export CARGO_HOME=./.cargo
-            - cargo tarpaulin --out Xml -v
-            - bash -c "bash <(curl -s https://codecov.io/bash)"
+- name: test
+  image: remiliaforever/bilibili-live-notifier:latest
+  commands:
+  - cargo tarpaulin --out Xml -v
 
-    rebuild_cache:
-        image: drillster/drone-volume-cache
-        rebuild: true
-        mount:
-            - ./.cargo
-        volumes:
-            - /home/drone/cache:/cache
+- name: codecov
+  image: robertstettner/drone-codecov
+  pull: always
+  settings:
+    token:
+      from_secret: codecov_token
+    files:
+    - cobertura.xml
 
-
-    notify:
-        image: appleboy/drone-telegram
-        when:
-            status: [ success, failure ]
-        format: markdown
-        to: -155562062
-        secrets: [ telegram_token ]
-        message: |
-            {{#success build.status}}
-                *Success* [{{repo.owner}}/{{repo.name}} #{{build.number}}]({{build.link}})
-            {{else}}
-                *Failed* {{build.link}}
-            {{/success}}
-            *Branch*: {{commit.Branch}}
-            *Author*: {{commit.Author}}
-            *Message*: {{commit.Message}}
-            *Elapsed*: {{buildtime build.started}}
+- name: notify
+  image: appleboy/drone-telegram
+  pull: always
+  when:
+      status:
+      - success
+      - failure
+  settings:
+    format: markdown
+    to: -155562062
+    message: |
+        {{#success build.status}}
+            *Success* [{{repo.owner}}/{{repo.name}} #{{build.number}}]({{build.link}})
+        {{else}}
+            *Failed* {{build.link}}
+        {{/success}}
+        *Branch*: {{commit.Branch}}
+        *Author*: {{commit.Author}}
+        *Message*: {{commit.Message}}
+        *Elapsed*: {{buildtime build.started}}
+    token:
+      from_secret: telegram_token

@@ -1,6 +1,3 @@
-use byteorder::WriteBytesExt;
-use byteorder::BE;
-
 /// 数据包封装
 #[derive(Debug)]
 pub struct Package {
@@ -54,32 +51,11 @@ impl Package {
         package
     }
 
-    /// 心跳包/请求房间人数
-    pub fn heart_beat() -> Package {
-        let mut package: Package = Package::new();
-        package.action = 2;
-        package
-    }
-
-    /// 包装为二进制
-    pub fn as_bytes(self) -> Result<Vec<u8>, &'static str> {
-        let mut buffer: Vec<u8> = Vec::with_capacity(self.length);
-        buffer
-            .write_u32::<BE>(self.length as u32)
-            .or(Err("length包装错误"))?;
-        buffer
-            .write_u32::<BE>(self.version)
-            .or(Err("version包装错误"))?;
-        buffer
-            .write_u32::<BE>(self.action)
-            .or(Err("action包装错误"))?;
-        buffer
-            .write_u32::<BE>(self.param)
-            .or(Err("param包装错误"))?;
-        match self.body {
-            Some(body) => buffer.extend_from_slice(body.as_bytes()),
-            None => {}
-        };
-        Ok(buffer)
-    }
+    pub const HEART_BEAT: Package = Package {
+        length: 0x0000_0010,
+        version: 0x0010_0001,
+        action: 0x0000_0002,
+        param: 0x0000_0001,
+        body: None,
+    };
 }

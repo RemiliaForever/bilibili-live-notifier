@@ -2,9 +2,10 @@
 name = "bilibili-live-notifier"
 version = "0.1.0"
 authors = ["RemiliaForever <remilia@koumakan.cc>"]
+edition = "2018"
 
 [dependencies]
-byteorder = "1.2.6"
+byteorder = "1.2.7"
 chrono = "0.4.6"
-notify-rust = "3.4.2"
-serde_json = "1.0.26"
+notify-rust = "3.5.0"
+serde_json = "1.0.33"

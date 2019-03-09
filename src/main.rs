@@ -1,8 +1,3 @@
-extern crate byteorder;
-extern crate chrono;
-extern crate notify_rust;
-extern crate serde_json;
-
 pub mod config;
 pub mod daemon;
 pub mod notify;
